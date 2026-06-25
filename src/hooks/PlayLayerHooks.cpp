@@ -3,7 +3,6 @@
 
 using namespace geode::prelude;
 
-// Состояние прямо здесь, без отдельного header.
 static Ref<PlayLayer> g_shadow = nullptr;
 static bool g_creatingShadow = false;
 static bool g_levelActive = false;
@@ -21,7 +20,7 @@ static void createShadow(GJGameLevel* level) {
     log::info("createShadow: пробую создать второй PlayLayer...");
 
     auto gm = GameManager::get();
-    PlayLayer* primary = gm->m_playLayer;   // активный (primary) слой
+    PlayLayer* primary = gm->m_playLayer;
     log::info("createShadow: primary = {}", static_cast<void*>(primary));
 
     g_creatingShadow = true;
@@ -34,12 +33,7 @@ static void createShadow(GJGameLevel* level) {
     }
 
     g_shadow = shadow;
-
-    // ВАЖНО: создание shadow перезаписало активный PlayLayer.
-    // Возвращаем его на primary, иначе ломается подгрузка объектов/пауза/выход.
     gm->m_playLayer = primary;
-
-    // Замораживаем shadow, чтобы он не тикал и ни во что не вмешивался.
     shadow->pauseSchedulerAndActions();
 
     log::info("createShadow: shadow создан, заморожен, синглтон восстановлен -> {}",
@@ -57,24 +51,42 @@ static void destroyShadow() {
 
 class $modify(ShadowPLHook, PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
-        // Если сейчас создаётся SHADOW — просто ванильный init.
         if (g_creatingShadow) {
             return PlayLayer::init(level, useReplay, dontCreateObjects);
         }
-
-        // PRIMARY-слой.
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) {
             return false;
         }
-
         g_levelActive = true;
-
-        // Создание shadow на следующий кадр.
         Loader::get()->queueInMainThread([level]() {
             createShadow(level);
         });
-
         return true;
+    }
+
+    void update(float dt) {
+        // Если это сам shadow — обычный update (на всякий случай).
+        if (this == g_shadow) {
+            PlayLayer::update(dt);
+            return;
+        }
+
+        // PRIMARY: сначала обновляем его как обычно.
+        PlayLayer::update(dt);
+
+        // Затем тем же dt вручную шагаем shadow.
+        if (g_shadow) {
+            log::debug("shadow update: до вызова");
+            g_shadow->update(dt);
+            log::debug("shadow update: после вызова");
+
+            if (this->m_player1 && g_shadow->m_player1) {
+                auto a = this->m_player1->getPosition();
+                auto b = g_shadow->m_player1->getPosition();
+                log::debug("primary=({:.1f},{:.1f}) shadow=({:.1f},{:.1f})",
+                    a.x, a.y, b.x, b.y);
+            }
+        }
     }
 
     void onQuit() {
