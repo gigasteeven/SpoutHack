@@ -6,7 +6,6 @@ project(LayoutOBS VERSION 1.0.0)
 
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
-    src/ShadowManager.cpp
     src/hooks/PlayLayerHooks.cpp
 )
 
