@@ -20,6 +20,10 @@ static void createShadow(GJGameLevel* level) {
 
     log::info("createShadow: пробую создать второй PlayLayer...");
 
+    auto gm = GameManager::get();
+    PlayLayer* primary = gm->m_playLayer;   // активный (primary) слой
+    log::info("createShadow: primary = {}", static_cast<void*>(primary));
+
     g_creatingShadow = true;
     PlayLayer* shadow = PlayLayer::create(level, false, false);
     g_creatingShadow = false;
@@ -30,7 +34,16 @@ static void createShadow(GJGameLevel* level) {
     }
 
     g_shadow = shadow;
-    log::info("createShadow: shadow создан -> {}", static_cast<void*>(shadow));
+
+    // ВАЖНО: создание shadow перезаписало активный PlayLayer.
+    // Возвращаем его на primary, иначе ломается подгрузка объектов/пауза/выход.
+    gm->m_playLayer = primary;
+
+    // Замораживаем shadow, чтобы он не тикал и ни во что не вмешивался.
+    shadow->pauseSchedulerAndActions();
+
+    log::info("createShadow: shadow создан, заморожен, синглтон восстановлен -> {}",
+        static_cast<void*>(shadow));
 }
 
 static void destroyShadow() {
