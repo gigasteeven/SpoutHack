@@ -13,17 +13,13 @@ static CCSprite* g_preview = nullptr;
 static void createShadow(GJGameLevel* level) {
     if (g_shadow) return;
     if (!level) { log::error("createShadow: level == null."); return; }
-
     log::info("createShadow: создаю shadow...");
     auto gm = GameManager::get();
     PlayLayer* primary = gm->m_playLayer;
-
     g_creatingShadow = true;
     PlayLayer* shadow = PlayLayer::create(level, false, false);
     g_creatingShadow = false;
-
     if (!shadow) { log::error("createShadow: null."); return; }
-
     g_shadow = shadow;
     gm->m_playLayer = primary;
     shadow->pauseSchedulerAndActions();
@@ -59,31 +55,34 @@ class $modify(ShadowPLHook, PlayLayer) {
 
     void update(float dt) {
         if (this == g_shadow) { PlayLayer::update(dt); return; }
-
         PlayLayer::update(dt);
         if (!g_shadow) return;
-
         g_shadow->update(dt);
 
-        // Рендер shadow в текстуру.
         auto win = CCDirector::sharedDirector()->getWinSize();
         if (!g_rt) {
             g_rt = CCRenderTexture::create((int)win.width, (int)win.height);
-            if (g_rt) g_rt->retain();
+            if (g_rt) { g_rt->retain(); log::info("RT создан {}x{}", (int)win.width, (int)win.height); }
+            else { log::error("RT == null!"); }
         }
         if (g_rt) {
             g_rt->beginWithClear(0.f, 0.f, 0.f, 1.f);
             g_shadow->visit();
             g_rt->end();
 
-            // Предпросмотр в правом верхнем углу.
-            if (!g_preview) {
+if (!g_preview && g_rt->getSprite()) {
                 g_preview = CCSprite::createWithTexture(g_rt->getSprite()->getTexture());
                 g_preview->setFlipY(true);
-                g_preview->setScale(0.3f);
-                g_preview->setAnchorPoint({1.f, 1.f});
-                g_preview->setPosition({win.width, win.height});
-                this->addChild(g_preview, 999999);
+                g_preview->setScale(0.4f);
+                g_preview->setPosition({win.width / 2.f, win.height / 2.f});
+                auto scene = CCDirector::sharedDirector()->getRunningScene();
+                if (scene) {
+                    scene->addChild(g_preview, 999999);
+                    log::info("preview добавлен в сцену по центру");
+                } else {
+                    log::error("getRunningScene == null!");
+                    g_preview = nullptr;
+                }
             }
         }
     }
@@ -93,4 +92,4 @@ class $modify(ShadowPLHook, PlayLayer) {
         g_levelActive = false;
         PlayLayer::onQuit();
     }
-};
+};  
