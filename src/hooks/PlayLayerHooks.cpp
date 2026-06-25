@@ -7,12 +7,14 @@ using namespace geode::prelude;
 static Ref<PlayLayer> g_shadow = nullptr;
 static bool g_creatingShadow = false;
 static bool g_levelActive = false;
+static CCRenderTexture* g_rt = nullptr;
+static CCSprite* g_preview = nullptr;
 
 static void createShadow(GJGameLevel* level) {
     if (g_shadow) return;
     if (!level) { log::error("createShadow: level == null."); return; }
 
-    log::info("createShadow: создаю второй PlayLayer...");
+    log::info("createShadow: создаю shadow...");
     auto gm = GameManager::get();
     PlayLayer* primary = gm->m_playLayer;
 
@@ -20,15 +22,17 @@ static void createShadow(GJGameLevel* level) {
     PlayLayer* shadow = PlayLayer::create(level, false, false);
     g_creatingShadow = false;
 
-    if (!shadow) { log::error("createShadow: вернул null."); return; }
+    if (!shadow) { log::error("createShadow: null."); return; }
 
     g_shadow = shadow;
     gm->m_playLayer = primary;
     shadow->pauseSchedulerAndActions();
-    log::info("createShadow: shadow готов -> {}", static_cast<void*>(shadow));
+    log::info("createShadow: shadow готов.");
 }
 
 static void destroyShadow() {
+    if (g_preview) { g_preview->removeFromParent(); g_preview = nullptr; }
+    if (g_rt) { g_rt->release(); g_rt = nullptr; }
     if (!g_shadow) return;
     log::info("destroyShadow.");
     if (g_shadow->getParent()) g_shadow->removeFromParent();
@@ -46,7 +50,6 @@ class $modify(ShadowPLHook, PlayLayer) {
         return true;
     }
 
-    // Зеркалируем нажатия на shadow.
     void handleButton(bool down, int button, bool isPlayerOne) {
         PlayLayer::handleButton(down, button, isPlayerOne);
         if (this != g_shadow && g_shadow) {
@@ -58,16 +61,29 @@ class $modify(ShadowPLHook, PlayLayer) {
         if (this == g_shadow) { PlayLayer::update(dt); return; }
 
         PlayLayer::update(dt);
+        if (!g_shadow) return;
 
-        if (g_shadow) {
-            g_shadow->update(dt);
-            if (this->m_player1 && g_shadow->m_player1) {
-                auto a = this->m_player1->getPosition();
-                auto b = g_shadow->m_player1->getPosition();
-                if (std::abs(a.x - b.x) > 1.f || std::abs(a.y - b.y) > 1.f) {
-                    log::warn("DESYNC primary=({:.1f},{:.1f}) shadow=({:.1f},{:.1f})",
-                        a.x, a.y, b.x, b.y);
-                }
+        g_shadow->update(dt);
+
+        // Рендер shadow в текстуру.
+        auto win = CCDirector::sharedDirector()->getWinSize();
+        if (!g_rt) {
+            g_rt = CCRenderTexture::create((int)win.width, (int)win.height);
+            if (g_rt) g_rt->retain();
+        }
+        if (g_rt) {
+            g_rt->beginWithClear(0.f, 0.f, 0.f, 1.f);
+            g_shadow->visit();
+            g_rt->end();
+
+            // Предпросмотр в правом верхнем углу.
+            if (!g_preview) {
+                g_preview = CCSprite::createWithTexture(g_rt->getSprite()->getTexture());
+                g_preview->setFlipY(true);
+                g_preview->setScale(0.3f);
+                g_preview->setAnchorPoint({1.f, 1.f});
+                g_preview->setPosition({win.width, win.height});
+                this->addChild(g_preview, 999999);
             }
         }
     }
