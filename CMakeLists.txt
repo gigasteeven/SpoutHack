@@ -1,22 +1,19 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(dual_layout VERSION 1.0.0)
+project(LayoutOBS VERSION 1.0.0)
 
-find_package(Geode REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/geode)
-
-include(FetchContent)
-FetchContent_Declare(
-    Spout2
-    GIT_REPOSITORY https://github.com/leadedge/Spout2.git
-    GIT_TAG master
+add_library(${PROJECT_NAME} SHARED
+    src/main.cpp
 )
-FetchContent_MakeAvailable(Spout2)
 
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp)
+if (NOT DEFINED ENV{GEODE_SDK})
+    message(FATAL_ERROR "Unable to find Geode SDK! Set GEODE_SDK env var.")
+else()
+    message(STATUS "Found Geode: $ENV{GEODE_SDK}")
+endif()
 
-add_library(${PROJECT_NAME} SHARED ${SOURCES})
-
-target_include_directories(${PROJECT_NAME} PRIVATE ${spout2_SOURCE_DIR}/SPOUTSDK/SpoutGL)
-target_link_libraries(${PROJECT_NAME} PRIVATE SpoutLibrary)
+add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 setup_geode_mod(${PROJECT_NAME})

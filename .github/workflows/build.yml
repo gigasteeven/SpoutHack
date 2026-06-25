@@ -1,26 +1,25 @@
-name: Build Mod
+name: Build Geode Mod
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  push:
+    branches: ["**"]
+  pull_request:
 
 jobs:
   build:
-    name: Build for Windows
+    name: Build Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         id: build
-        with:
-          sdk: 5.7.1
-          
-      - name: Upload Artifact
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
+          name: layoutobs-windows
           path: ${{ steps.build.outputs.build-output }}

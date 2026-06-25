@@ -1,11 +1,11 @@
 {
-    "geode": "5.7.1",
-    "gd": {
-        "win": "2.2081"
-    },
-    "id": "xdbot.dual_layout",
-    "name": "Dual Layout Mode",
-    "version": "v1.0.0",
-    "developer": "XDBot",
-    "description": "Double PlayLayer rendering: layout on screen, full graphics via Spout."
+ "geode": "5.7.1",
+ "gd": {
+  "win": "2.2081"
+ },
+ "id": "you.layoutobs",
+ "name": "Layout OBS",
+ "version": "v1.0.0",
+ "developer": "you",
+ "description": "Layout mode on screen, full level to OBS via Spout."
 }
