@@ -1,11 +1,19 @@
 {
- "geode": "5.7.1",
- "gd": {
-  "win": "2.2081"
- },
- "id": "you.layoutobs",
- "name": "Layout OBS",
- "version": "v1.0.0",
- "developer": "you",
- "description": "Layout mode on screen, full level to OBS via Spout."
+    "geode": "5.7.1",
+    "gd": {
+        "win": "2.2081"
+    },
+    "version": "v0.1.0",
+    "id": "you.layoutstream",
+    "name": "Layout Stream",
+    "developer": "You",
+    "description": "Layout Mode on screen, clean level to OBS via Spout2.",
+    "tags": ["interface", "utility"],
+    "settings": {
+        "enabled": {
+            "name": "Enable on level",
+            "type": "bool",
+            "default": true
+        }
+    }
 }
